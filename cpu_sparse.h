@@ -7,6 +7,12 @@
 #include <ostream>
 #include <new>
 
+enum class vc_extend {
+  Pad,
+  Repeat,
+  Reflect,
+};
+
 enum class vc_fill_rule {
   Winding,
   EvenOdd,
@@ -16,9 +22,15 @@ struct vc_argb;
 
 struct vc_context;
 
+struct vc_linear_gradient;
+
 struct vc_path;
 
 struct vc_pixmap;
+
+struct vc_radial_gradient;
+
+struct vc_sweep_gradient;
 
 struct vc_transform {
   double sx;
@@ -48,23 +60,30 @@ struct vc_color {
   uint8_t a;
 };
 
+enum class vc_paint_tag {
+  Color,
+  LinearGradient,
+  RadialGradient,
+  SweepGradient,
+};
+
 struct vc_paint {
-  enum class Tag {
-    Color,
-  };
-
-  struct Color_Body {
-    vc_color _0;
-  };
-
-  Tag tag;
+  vc_paint_tag tag;
   union {
-    Color_Body color;
+    vc_color color;
+    vc_linear_gradient *linear_gradient;
+    vc_radial_gradient *radial_gradient;
+    vc_sweep_gradient *sweep_gradient;
   };
 };
 
 struct vc_stroke {
   double width;
+};
+
+struct vc_gradient_stop {
+  double offset;
+  vc_color color;
 };
 
 extern "C" {
@@ -107,6 +126,10 @@ void vc_render_to_pixmap(vc_pixmap *pixmap, vc_context *context);
 
 void vc_set_transform(vc_context *ctx, vc_transform transform);
 
+void vc_set_paint_transform(vc_context *ctx, vc_transform transform);
+
+void vc_reset_paint_transform(vc_context *ctx);
+
 void vc_set_fill_rule(vc_context *ctx, vc_fill_rule fill_rule);
 
 void vc_set_paint(vc_context *ctx, vc_paint paint);
@@ -126,6 +149,31 @@ const uint8_t *vc_argb_data(const vc_argb *data);
 void vc_argb_destroy(vc_argb *data);
 
 void vc_stroke_rect(vc_context *ctx, vc_rect rect);
+
+vc_linear_gradient *vc_linear_gradient_create(vc_point start, vc_point end, vc_extend extend);
+
+vc_radial_gradient *vc_radial_gradient_create(vc_point center0,
+                                              double radius0,
+                                              vc_point center1,
+                                              double radius1,
+                                              vc_extend extend);
+
+void vc_linear_gradient_push_stop(vc_linear_gradient *gradient, vc_gradient_stop stop);
+
+void vc_radial_gradient_push_stop(vc_radial_gradient *gradient, vc_gradient_stop stop);
+
+void vc_linear_gradient_destroy(vc_linear_gradient *gradient);
+
+void vc_radial_gradient_destroy(vc_radial_gradient *gradient);
+
+vc_sweep_gradient *vc_sweep_gradient_create(vc_point center,
+                                            double start_angle,
+                                            double end_angle,
+                                            vc_extend extend);
+
+void vc_sweep_gradient_push_stop(vc_sweep_gradient *gradient, vc_gradient_stop stop);
+
+void vc_sweep_gradient_destroy(vc_sweep_gradient *gradient);
 
 }  // extern "C"
 

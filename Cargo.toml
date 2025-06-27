@@ -8,3 +8,4 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 vello_cpu = { path = "../vello/sparse_strips/vello_cpu"}
+smallvec = "1.0"

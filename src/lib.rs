@@ -3,8 +3,9 @@
 
 use vello_cpu::color::{AlphaColor, Srgb};
 use vello_cpu::kurbo::{Affine, BezPath, Cap, Join, Point, Rect, RoundedRectRadii, Shape, Stroke};
-use vello_cpu::peniko::Fill;
+use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend};
 use vello_cpu::{PaintType, Pixmap, RenderContext, RenderMode};
+use vello_cpu::color::DynamicColor;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -236,6 +237,16 @@ pub unsafe extern "C" fn vc_set_transform(ctx: *mut vc_context, transform: vc_tr
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn vc_set_paint_transform(ctx: *mut vc_context, transform: vc_transform) {
+    (*ctx).0.set_paint_transform(transform.into())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_reset_paint_transform(ctx: *mut vc_context) {
+    (*ctx).0.reset_paint_transform()
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn vc_set_fill_rule(ctx: *mut vc_context, fill_rule: vc_fill_rule) {
     (*ctx).0.set_fill_rule(fill_rule.into());
 }
@@ -308,6 +319,9 @@ impl From<vc_stroke> for Stroke {
 #[repr(C)]
 pub enum vc_paint {
     Color(vc_color),
+    LinearGradient(*mut vc_linear_gradient),
+    RadialGradient(*mut vc_radial_gradient),
+    SweepGradient(*mut vc_sweep_gradient),
 }
 
 unsafe fn convert_paint(paint: vc_paint) -> PaintType {
@@ -316,10 +330,215 @@ unsafe fn convert_paint(paint: vc_paint) -> PaintType {
             let c: AlphaColor<Srgb> = color.into();
             c.into()
         }
+        vc_paint::LinearGradient(g) => {
+            (*g).clone().into()
+        }
+        vc_paint::RadialGradient(g) => {
+            (*g).clone().into()
+        }
+        vc_paint::SweepGradient(g) => {
+            (*g).clone().into()
+        }
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_stroke_rect(ctx: *mut vc_context, rect: vc_rect) {
     (*ctx).0.stroke_rect(&rect.into());
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub enum vc_extend {
+    Pad,
+    Repeat,
+    Reflect,
+}
+
+impl From<vc_extend> for Extend {
+    fn from(value: vc_extend) -> Self {
+        match value {
+            vc_extend::Pad => Extend::Pad,
+            vc_extend::Repeat => Extend::Repeat,
+            vc_extend::Reflect => Extend::Reflect,
+        }
+    }
+}
+
+#[repr(C)]
+pub struct vc_gradient_stop {
+    offset: f64,
+    color: vc_color,
+}
+
+impl From<vc_gradient_stop> for ColorStop {
+    fn from(value: vc_gradient_stop) -> Self {
+        let alpha_color: AlphaColor<Srgb> = value.color.into();
+        ColorStop {
+            offset: value.offset as f32,
+            color: DynamicColor::from_alpha_color(alpha_color),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct vc_linear_gradient {
+    start: vc_point,
+    end: vc_point,
+    stops: Vec<ColorStop>,
+    extend: Extend,
+}
+
+impl From<vc_linear_gradient> for PaintType {
+    fn from(value: vc_linear_gradient) -> Self {
+        let gradient = Gradient {
+            kind: GradientKind::Linear {
+                start: value.start.into(),
+                end: value.end.into(),
+            },
+            stops: ColorStops(value.stops.into()),
+            extend: value.extend,
+            ..Default::default()
+        };
+        PaintType::Gradient(gradient)
+    }
+}
+
+#[derive(Clone)]
+pub struct vc_radial_gradient {
+    center0: vc_point,
+    radius0: f64,
+    center1: vc_point,
+    radius1: f64,
+    stops: Vec<ColorStop>,
+    extend: Extend,
+}
+
+impl From<vc_radial_gradient> for PaintType {
+    fn from(value: vc_radial_gradient) -> Self {
+        let gradient = Gradient {
+            kind: GradientKind::Radial {
+                start_center: value.center0.into(),
+                start_radius: value.radius0 as f32,
+                end_center: value.center1.into(),
+                end_radius: value.radius1 as f32,
+            },
+            stops: ColorStops(value.stops.into()),
+            extend: value.extend,
+            ..Default::default()
+        };
+        PaintType::Gradient(gradient)
+    }
+}
+
+#[derive(Clone)]
+pub struct vc_sweep_gradient {
+    center: vc_point,
+    start_angle: f64,
+    end_angle: f64,
+    stops: Vec<ColorStop>,
+    extend: Extend,
+}
+
+impl From<vc_sweep_gradient> for PaintType {
+    fn from(value: vc_sweep_gradient) -> Self {
+        let gradient = Gradient {
+            kind: GradientKind::Sweep {
+                center: value.center.into(),
+                start_angle: value.start_angle as f32,
+                end_angle: value.end_angle as f32,
+            },
+            stops: ColorStops(value.stops.into()),
+            extend: value.extend,
+            ..Default::default()
+        };
+        PaintType::Gradient(gradient)
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_linear_gradient_create(
+    start: vc_point,
+    end: vc_point,
+    extend: vc_extend,
+) -> *mut vc_linear_gradient {
+    Box::into_raw(Box::new(vc_linear_gradient {
+        start,
+        end,
+        stops: Vec::new(),
+        extend: extend.into(),
+    }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_radial_gradient_create(
+    center0: vc_point,
+    radius0: f64,
+    center1: vc_point,
+    radius1: f64,
+    extend: vc_extend,
+) -> *mut vc_radial_gradient {
+    Box::into_raw(Box::new(vc_radial_gradient {
+        center0,
+        radius0,
+        center1,
+        radius1,
+        stops: Vec::new(),
+        extend: extend.into(),
+    }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_linear_gradient_push_stop(
+    gradient: *mut vc_linear_gradient,
+    stop: vc_gradient_stop,
+) {
+    (*gradient).stops.push(stop.into());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_radial_gradient_push_stop(
+    gradient: *mut vc_radial_gradient,
+    stop: vc_gradient_stop,
+) {
+    (*gradient).stops.push(stop.into());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_linear_gradient_destroy(gradient: *mut vc_linear_gradient) {
+    let _ = Box::from_raw(gradient);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_radial_gradient_destroy(gradient: *mut vc_radial_gradient) {
+    let _ = Box::from_raw(gradient);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_sweep_gradient_create(
+    center: vc_point,
+    start_angle: f64,
+    end_angle: f64,
+    extend: vc_extend,
+) -> *mut vc_sweep_gradient {
+    Box::into_raw(Box::new(vc_sweep_gradient {
+        center,
+        start_angle,
+        end_angle,
+        stops: Vec::new(),
+        extend: extend.into(),
+    }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_sweep_gradient_push_stop(
+    gradient: *mut vc_sweep_gradient,
+    stop: vc_gradient_stop,
+) {
+    (*gradient).stops.push(stop.into());
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_sweep_gradient_destroy(gradient: *mut vc_sweep_gradient) {
+    let _ = Box::from_raw(gradient);
 }
