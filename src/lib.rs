@@ -1,11 +1,12 @@
 #![allow(non_camel_case_types)]
 #![allow(clippy::missing_safety_doc)]
 
-use vello_cpu::color::{AlphaColor, Srgb};
+use vello_cpu::color::{AlphaColor, PremulRgba8, Srgb};
 use vello_cpu::kurbo::{Affine, BezPath, Cap, Join, Point, Rect, RoundedRectRadii, Shape, Stroke};
-use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend};
-use vello_cpu::{PaintType, Pixmap, RenderContext, RenderMode};
+use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend, ImageQuality};
+use vello_cpu::{PaintType, Pixmap, RenderContext, RenderMode, Image};
 use vello_cpu::color::DynamicColor;
+use std::sync::Arc;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -156,6 +157,13 @@ pub extern "C" fn vc_transform_rotate_at(angle: f64, cx: f64, cy: f64) -> vc_tra
 }
 
 #[no_mangle]
+pub extern "C" fn vc_transform_combine(t1: vc_transform, t2: vc_transform) -> vc_transform {
+    let a1: Affine = t1.into();
+    let a2: Affine = t2.into();
+    (a1 * a2).into()
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn vc_path_create() -> *mut vc_path {
     Box::into_raw(Box::new(vc_path(BezPath::new())))
 }
@@ -213,6 +221,8 @@ pub unsafe extern "C" fn vc_context_destroy(ctx: *mut vc_context) {
 
 pub struct vc_pixmap(Pixmap);
 
+pub struct vc_arc_pixmap(Arc<Pixmap>);
+
 #[no_mangle]
 pub unsafe extern "C" fn vc_pixmap_create(width: u32, height: u32) -> *mut vc_pixmap {
     let pixmap = Pixmap::new(width as u16, height as u16);
@@ -221,6 +231,11 @@ pub unsafe extern "C" fn vc_pixmap_create(width: u32, height: u32) -> *mut vc_pi
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_pixmap_destroy(pixmap: *mut vc_pixmap) {
+    let _ = Box::from_raw(pixmap);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_arc_pixmap_destroy(pixmap: *mut vc_arc_pixmap) {
     let _ = Box::from_raw(pixmap);
 }
 
@@ -316,12 +331,42 @@ impl From<vc_stroke> for Stroke {
     }
 }
 
+#[derive(Clone)]
+pub struct vc_image {
+    image: Image,
+}
+
+impl From<vc_image> for PaintType {
+    fn from(value: vc_image) -> Self {
+        PaintType::Image(value.image)
+    }
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub enum vc_image_quality {
+    Low,
+    Medium,
+    High,
+}
+
+impl From<vc_image_quality> for ImageQuality {
+    fn from(value: vc_image_quality) -> Self {
+        match value {
+            vc_image_quality::Low => ImageQuality::Low,
+            vc_image_quality::Medium => ImageQuality::Medium,
+            vc_image_quality::High => ImageQuality::High,
+        }
+    }
+}
+
 #[repr(C)]
 pub enum vc_paint {
     Color(vc_color),
     LinearGradient(*mut vc_linear_gradient),
     RadialGradient(*mut vc_radial_gradient),
     SweepGradient(*mut vc_sweep_gradient),
+    Image(*mut vc_image),
 }
 
 unsafe fn convert_paint(paint: vc_paint) -> PaintType {
@@ -338,6 +383,9 @@ unsafe fn convert_paint(paint: vc_paint) -> PaintType {
         }
         vc_paint::SweepGradient(g) => {
             (*g).clone().into()
+        }
+        vc_paint::Image(img) => {
+            (*img).clone().into()
         }
     }
 }
@@ -541,4 +589,41 @@ pub unsafe extern "C" fn vc_sweep_gradient_push_stop(
 #[no_mangle]
 pub unsafe extern "C" fn vc_sweep_gradient_destroy(gradient: *mut vc_sweep_gradient) {
     let _ = Box::from_raw(gradient);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_pixmap_from_data(
+    data: *const u8,
+    width: u32,
+    height: u32,
+) -> *mut vc_arc_pixmap {
+    let size = (width * height * 4) as usize;
+    let data_slice = std::slice::from_raw_parts(data, size);
+    let casted: &[PremulRgba8] = bytemuck::cast_slice(data_slice);
+
+    Box::into_raw(Box::new(vc_arc_pixmap(Arc::new(Pixmap::from_parts(casted.to_vec(), width as u16, height as u16)))))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_image_create(
+    pixmap: *mut vc_arc_pixmap,
+    x_extend: vc_extend,
+    y_extend: vc_extend,
+    quality: vc_image_quality,
+) -> *mut vc_image {
+    let pixmap_ref = &(*pixmap).0;
+    
+    let image = Image {
+        pixmap: pixmap_ref.clone(),
+        x_extend: x_extend.into(),
+        y_extend: y_extend.into(),
+        quality: quality.into(),
+    };
+    
+    Box::into_raw(Box::new(vc_image { image }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_image_destroy(image: *mut vc_image) {
+    let _ = Box::from_raw(image);
 }

@@ -7,5 +7,6 @@ edition = "2021"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
+bytemuck = "1.23.1"
 vello_cpu = { path = "../vello/sparse_strips/vello_cpu"}
 smallvec = "1.0"

@@ -18,9 +18,19 @@ enum class vc_fill_rule {
   EvenOdd,
 };
 
+enum class vc_image_quality {
+  Low,
+  Medium,
+  High,
+};
+
+struct vc_arc_pixmap;
+
 struct vc_argb;
 
 struct vc_context;
+
+struct vc_image;
 
 struct vc_linear_gradient;
 
@@ -66,6 +76,7 @@ struct vc_paint {
     LinearGradient,
     RadialGradient,
     SweepGradient,
+    Image,
   };
 
   struct Color_Body {
@@ -84,12 +95,17 @@ struct vc_paint {
     vc_sweep_gradient *_0;
   };
 
+  struct Image_Body {
+    vc_image *_0;
+  };
+
   Tag tag;
   union {
     Color_Body color;
     LinearGradient_Body linear_gradient;
     RadialGradient_Body radial_gradient;
     SweepGradient_Body sweep_gradient;
+    Image_Body image;
   };
 };
 
@@ -114,6 +130,8 @@ vc_transform vc_transform_rotate(double angle);
 
 vc_transform vc_transform_rotate_at(double angle, double cx, double cy);
 
+vc_transform vc_transform_combine(vc_transform t1, vc_transform t2);
+
 vc_path *vc_path_create();
 
 void vc_move_to(vc_path *path, vc_point p);
@@ -137,6 +155,8 @@ void vc_context_destroy(vc_context *ctx);
 vc_pixmap *vc_pixmap_create(uint32_t width, uint32_t height);
 
 void vc_pixmap_destroy(vc_pixmap *pixmap);
+
+void vc_arc_pixmap_destroy(vc_arc_pixmap *pixmap);
 
 void vc_render_to_pixmap(vc_pixmap *pixmap, vc_context *context);
 
@@ -190,6 +210,15 @@ vc_sweep_gradient *vc_sweep_gradient_create(vc_point center,
 void vc_sweep_gradient_push_stop(vc_sweep_gradient *gradient, vc_gradient_stop stop);
 
 void vc_sweep_gradient_destroy(vc_sweep_gradient *gradient);
+
+vc_arc_pixmap *vc_pixmap_from_data(const uint8_t *data, uint32_t width, uint32_t height);
+
+vc_image *vc_image_create(vc_arc_pixmap *pixmap,
+                          vc_extend x_extend,
+                          vc_extend y_extend,
+                          vc_image_quality quality);
+
+void vc_image_destroy(vc_image *image);
 
 }  // extern "C"
 
