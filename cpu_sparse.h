@@ -60,20 +60,36 @@ struct vc_color {
   uint8_t a;
 };
 
-enum class vc_paint_tag {
-  Color,
-  LinearGradient,
-  RadialGradient,
-  SweepGradient,
-};
-
 struct vc_paint {
-  vc_paint_tag tag;
+  enum class Tag {
+    Color,
+    LinearGradient,
+    RadialGradient,
+    SweepGradient,
+  };
+
+  struct Color_Body {
+    vc_color _0;
+  };
+
+  struct LinearGradient_Body {
+    vc_linear_gradient *_0;
+  };
+
+  struct RadialGradient_Body {
+    vc_radial_gradient *_0;
+  };
+
+  struct SweepGradient_Body {
+    vc_sweep_gradient *_0;
+  };
+
+  Tag tag;
   union {
-    vc_color color;
-    vc_linear_gradient *linear_gradient;
-    vc_radial_gradient *radial_gradient;
-    vc_sweep_gradient *sweep_gradient;
+    Color_Body color;
+    LinearGradient_Body linear_gradient;
+    RadialGradient_Body radial_gradient;
+    SweepGradient_Body sweep_gradient;
   };
 };
 
