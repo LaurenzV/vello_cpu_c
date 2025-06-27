@@ -1,7 +1,7 @@
 use vello_cpu::color::{AlphaColor, Srgb};
 use vello_cpu::kurbo::{Affine, BezPath, Cap, Join, Point, Rect, RoundedRectRadii, Shape, Stroke};
-use vello_cpu::{Paint, PaintType, Pixmap, RenderContext, RenderMode};
 use vello_cpu::peniko::Fill;
+use vello_cpu::{Paint, PaintType, Pixmap, RenderContext, RenderMode};
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -222,7 +222,9 @@ pub unsafe extern "C" fn sp_pixmap_destroy(pixmap: *mut sp_pixmap) {
 
 #[no_mangle]
 pub unsafe extern "C" fn sp_render_to_pixmap(pixmap: *mut sp_pixmap, context: *mut sp_context) {
-    (*context).0.render_to_pixmap(&mut (*pixmap).0, RenderMode::OptimizeSpeed);
+    (*context)
+        .0
+        .render_to_pixmap(&mut (*pixmap).0, RenderMode::OptimizeSpeed);
 }
 
 #[no_mangle]
