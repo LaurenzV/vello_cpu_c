@@ -76,7 +76,9 @@ dependencies = [
 [[package]]
 name = "fearless_simd"
 version = "0.2.0"
-source = "git+https://github.com/raphlinus/fearless_simd?rev=e46bcfd#e46bcfd622dbd7edd8538c836d9b100b6101aa15"
+dependencies = [
+ "bytemuck",
+]
 
 [[package]]
 name = "flate2"
@@ -100,8 +102,7 @@ dependencies = [
 [[package]]
 name = "kurbo"
 version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1077d333efea6170d9ccb96d3c3026f300ca0773da4938cc4c811daa6df68b0c"
+source = "git+https://github.com/linebender/kurbo?rev=08d784c5efee4e8618e9915a28fd0532e6dc85fa#08d784c5efee4e8618e9915a28fd0532e6dc85fa"
 dependencies = [
  "arrayvec",
  "smallvec",
@@ -225,6 +226,7 @@ dependencies = [
 name = "vello_cpu"
 version = "0.0.1"
 dependencies = [
+ "bytemuck",
  "vello_common",
 ]
 

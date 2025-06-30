@@ -10,3 +10,6 @@ crate-type = ["cdylib", "staticlib"]
 bytemuck = "1.23.1"
 vello_cpu = { path = "../vello/sparse_strips/vello_cpu"}
 smallvec = "1.0"
+
+[patch.crates-io]
+kurbo = {git = "https://github.com/linebender/kurbo", rev = "08d784c5efee4e8618e9915a28fd0532e6dc85fa"  }
