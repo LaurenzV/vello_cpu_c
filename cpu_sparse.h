@@ -148,7 +148,7 @@ vc_path *vc_rounded_rect(vc_rect rect, double r);
 
 void vc_path_destroy(vc_path *b);
 
-vc_context *vc_context_create(uint32_t width, uint32_t height);
+vc_context *vc_context_create(uint32_t width, uint32_t height, uint32_t num_threads);
 
 void vc_context_destroy(vc_context *ctx);
 
@@ -157,6 +157,8 @@ vc_pixmap *vc_pixmap_create(uint32_t width, uint32_t height);
 void vc_pixmap_destroy(vc_pixmap *pixmap);
 
 void vc_arc_pixmap_destroy(vc_arc_pixmap *pixmap);
+
+void vc_flush(vc_context *context);
 
 void vc_render_to_pixmap(vc_pixmap *pixmap, vc_context *context);
 

@@ -4,7 +4,7 @@
 use vello_cpu::color::{AlphaColor, PremulRgba8, Srgb};
 use vello_cpu::kurbo::{Affine, BezPath, Cap, Join, Point, Rect, RoundedRectRadii, Shape, Stroke};
 use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend, ImageQuality};
-use vello_cpu::{PaintType, Pixmap, RenderContext, RenderMode, Image};
+use vello_cpu::{PaintType, Pixmap, RenderContext, RenderMode, Image, RenderSettings, Level, ImageSource};
 use vello_cpu::color::DynamicColor;
 use std::sync::Arc;
 
@@ -209,8 +209,13 @@ pub unsafe extern "C" fn vc_path_destroy(b: *mut vc_path) {
 pub struct vc_context(RenderContext);
 
 #[no_mangle]
-pub unsafe extern "C" fn vc_context_create(width: u32, height: u32) -> *mut vc_context {
-    let ctx = RenderContext::new(width as u16, height as u16);
+pub unsafe extern "C" fn vc_context_create(width: u32, height: u32, num_threads: u32) -> *mut vc_context {
+    let settings = RenderSettings {
+        level: Level::new(),
+        num_threads: num_threads as u16,
+    };
+    
+    let ctx = RenderContext::new_with(width as u16, height as u16, &settings);
     Box::into_raw(Box::new(vc_context(ctx)))
 }
 
@@ -237,6 +242,13 @@ pub unsafe extern "C" fn vc_pixmap_destroy(pixmap: *mut vc_pixmap) {
 #[no_mangle]
 pub unsafe extern "C" fn vc_arc_pixmap_destroy(pixmap: *mut vc_arc_pixmap) {
     let _ = Box::from_raw(pixmap);
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_flush(context: *mut vc_context) {
+    (*context)
+        .0
+        .flush();
 }
 
 #[no_mangle]
@@ -614,7 +626,7 @@ pub unsafe extern "C" fn vc_image_create(
     let pixmap_ref = &(*pixmap).0;
     
     let image = Image {
-        pixmap: pixmap_ref.clone(),
+        source: ImageSource::Pixmap(pixmap_ref.clone()),
         x_extend: x_extend.into(),
         y_extend: y_extend.into(),
         quality: quality.into(),

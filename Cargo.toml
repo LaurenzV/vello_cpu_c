@@ -8,7 +8,7 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 bytemuck = "1.23.1"
-vello_cpu = { path = "../vello/sparse_strips/vello_cpu"}
+vello_cpu = { path = "../vello/sparse_strips/vello_cpu", features = ["multithreading"]}
 smallvec = "1.0"
 
 [patch.crates-io]
