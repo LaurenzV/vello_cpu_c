@@ -11,4 +11,4 @@ bytemuck = "1.23.1"
 vello_cpu = { path = "../vello/sparse_strips/vello_cpu", features = ["multithreading"]}
 
 [patch.crates-io]
-kurbo = { git = "https://github.com/linebender/kurbo/", rev = "f3b13ad"  }
+kurbo = { git = "https://github.com/linebender/kurbo/", rev = "7d40438"  }
