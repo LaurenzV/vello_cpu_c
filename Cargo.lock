@@ -31,9 +31,9 @@ dependencies = [
 
 [[package]]
 name = "bytemuck_derive"
-version = "1.9.3"
+version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ecc273b49b3205b83d648f0690daa588925572cc5063745bfe547fe7ec8e1a1"
+checksum = "441473f2b4b0459a68628c744bc61d23e730fb00128b841d30fa4bb3972257e4"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -57,9 +57,9 @@ dependencies = [
 
 [[package]]
 name = "crc32fast"
-version = "1.4.2"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
+checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
 ]
@@ -116,7 +116,7 @@ dependencies = [
 [[package]]
 name = "fearless_simd"
 version = "0.2.0"
-source = "git+https://github.com/linebender/fearless_simd?rev=3d1a77c#3d1a77cfb4515c0da307d50dc782c08840b90c70"
+source = "git+https://github.com/linebender/fearless_simd?rev=8ca44c0#8ca44c04c186bedcde51de983bfaa54ae3a03e8d"
 dependencies = [
  "bytemuck",
 ]
