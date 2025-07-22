@@ -150,6 +150,10 @@ void vc_path_destroy(vc_path *b);
 
 vc_context *vc_context_create(uint32_t width, uint32_t height, uint32_t num_threads);
 
+void vc_context_reset(vc_context *ctx);
+
+void vc_context_resize(vc_context *ctx, uint32_t width, uint32_t height, uint32_t num_threads);
+
 void vc_context_destroy(vc_context *ctx);
 
 vc_pixmap *vc_pixmap_create(uint32_t width, uint32_t height);

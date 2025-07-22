@@ -220,6 +220,23 @@ pub unsafe extern "C" fn vc_context_create(width: u32, height: u32, num_threads:
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn vc_context_reset(ctx: *mut vc_context) {
+    (*ctx).0.reset();   
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn vc_context_resize(ctx: *mut vc_context, width: u32, height: u32, num_threads: u32) {
+    if (*ctx).0.width() != width as u16 || (*ctx).0.height() != height as u16 {
+        let settings = RenderSettings {
+            level: Level::new(),
+            num_threads: num_threads as u16,
+        };
+        
+        (*ctx).0 = RenderContext::new_with(width as u16, height as u16, &settings);
+    }   
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn vc_context_destroy(ctx: *mut vc_context) {
     let _ = Box::from_raw(ctx);
 }
