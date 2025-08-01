@@ -8,7 +8,7 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 bytemuck = "1.23.1"
-vello_cpu = { path = "../vello/sparse_strips/vello_cpu", features = ["multithreading"]}
+vello_cpu = { git = "https://github.com/linebender/vello", rev = "fd87365", features = ["multithreading"]}
 
 [patch.crates-io]
-kurbo = { git = "https://github.com/linebender/kurbo/", rev = "7d40438"  }
+kurbo = { git = "https://github.com/linebender/kurbo/", rev = "1312d43"  }
