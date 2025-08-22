@@ -213,9 +213,10 @@ pub unsafe extern "C" fn vc_context_create(width: u32, height: u32, num_threads:
     let settings = RenderSettings {
         level: Level::new(),
         num_threads: num_threads as u16,
+        render_mode: RenderMode::OptimizeSpeed
     };
     
-    let ctx = RenderContext::new_with(width as u16, height as u16, &settings);
+    let ctx = RenderContext::new_with(width as u16, height as u16, settings);
     Box::into_raw(Box::new(vc_context(ctx)))
 }
 
@@ -230,9 +231,10 @@ pub unsafe extern "C" fn vc_context_resize(ctx: *mut vc_context, width: u32, hei
         let settings = RenderSettings {
             level: Level::new(),
             num_threads: num_threads as u16,
+            render_mode: RenderMode::OptimizeSpeed
         };
         
-        (*ctx).0 = RenderContext::new_with(width as u16, height as u16, &settings);
+        (*ctx).0 = RenderContext::new_with(width as u16, height as u16, settings);
     }   
 }
 
@@ -272,7 +274,7 @@ pub unsafe extern "C" fn vc_flush(context: *mut vc_context) {
 pub unsafe extern "C" fn vc_render_to_pixmap(pixmap: *mut vc_pixmap, context: *mut vc_context) {
     (*context)
         .0
-        .render_to_pixmap(&mut (*pixmap).0, RenderMode::OptimizeSpeed);
+        .render_to_pixmap(&mut (*pixmap).0);
 }
 
 #[no_mangle]
