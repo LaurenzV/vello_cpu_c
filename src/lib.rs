@@ -3,7 +3,7 @@
 
 use vello_cpu::color::{AlphaColor, PremulRgba8, Srgb};
 use vello_cpu::kurbo::{Affine, BezPath, Cap, Join, Point, Rect, RoundedRectRadii, Shape, Stroke};
-use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend, ImageQuality};
+use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend, ImageQuality, SweepGradientPosition, RadialGradientPosition, LinearGradientPosition};
 use vello_cpu::{PaintType, Pixmap, RenderContext, RenderMode, Image, RenderSettings, Level, ImageSource};
 use vello_cpu::color::DynamicColor;
 use std::sync::Arc;
@@ -471,10 +471,10 @@ pub struct vc_linear_gradient {
 impl From<vc_linear_gradient> for PaintType {
     fn from(value: vc_linear_gradient) -> Self {
         let gradient = Gradient {
-            kind: GradientKind::Linear {
+            kind: GradientKind::Linear(LinearGradientPosition {
                 start: value.start.into(),
                 end: value.end.into(),
-            },
+            }),
             stops: ColorStops(value.stops.into()),
             extend: value.extend,
             ..Default::default()
@@ -496,12 +496,12 @@ pub struct vc_radial_gradient {
 impl From<vc_radial_gradient> for PaintType {
     fn from(value: vc_radial_gradient) -> Self {
         let gradient = Gradient {
-            kind: GradientKind::Radial {
+            kind: GradientKind::Radial(RadialGradientPosition {
                 start_center: value.center0.into(),
                 start_radius: value.radius0 as f32,
                 end_center: value.center1.into(),
                 end_radius: value.radius1 as f32,
-            },
+            }),
             stops: ColorStops(value.stops.into()),
             extend: value.extend,
             ..Default::default()
@@ -522,11 +522,11 @@ pub struct vc_sweep_gradient {
 impl From<vc_sweep_gradient> for PaintType {
     fn from(value: vc_sweep_gradient) -> Self {
         let gradient = Gradient {
-            kind: GradientKind::Sweep {
+            kind: GradientKind::Sweep(SweepGradientPosition {
                 center: value.center.into(),
                 start_angle: value.start_angle as f32,
                 end_angle: value.end_angle as f32,
-            },
+            }),
             stops: ColorStops(value.stops.into()),
             extend: value.extend,
             ..Default::default()
