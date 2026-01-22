@@ -3,7 +3,7 @@
 
 use vello_cpu::color::{AlphaColor, PremulRgba8, Srgb};
 use vello_cpu::kurbo::{Affine, BezPath, Cap, Join, Point, Rect, RoundedRectRadii, Shape, Stroke};
-use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend, ImageQuality, SweepGradientPosition, RadialGradientPosition, LinearGradientPosition};
+use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend, ImageQuality, SweepGradientPosition, RadialGradientPosition, LinearGradientPosition, ImageSampler};
 use vello_cpu::{PaintType, Pixmap, RenderContext, RenderMode, Image, RenderSettings, Level, ImageSource};
 use vello_cpu::color::DynamicColor;
 use std::sync::Arc;
@@ -643,12 +643,15 @@ pub unsafe extern "C" fn vc_image_create(
     quality: vc_image_quality,
 ) -> *mut vc_image {
     let pixmap_ref = &(*pixmap).0;
-    
+
     let image = Image {
-        source: ImageSource::Pixmap(pixmap_ref.clone()),
-        x_extend: x_extend.into(),
-        y_extend: y_extend.into(),
-        quality: quality.into(),
+        image: ImageSource::Pixmap(pixmap_ref.clone()),
+        sampler: ImageSampler {
+            x_extend: x_extend.into(),
+            y_extend: y_extend.into(),
+            quality: quality.into(),
+            alpha: 1.0,
+        },
     };
     
     Box::into_raw(Box::new(vc_image { image }))
