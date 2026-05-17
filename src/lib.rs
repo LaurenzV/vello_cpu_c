@@ -1,12 +1,18 @@
 #![allow(non_camel_case_types)]
 #![allow(clippy::missing_safety_doc)]
 
+use std::sync::Arc;
+use vello_cpu::color::DynamicColor;
 use vello_cpu::color::{AlphaColor, PremulRgba8, Srgb};
 use vello_cpu::kurbo::{Affine, BezPath, Cap, Join, Point, Rect, RoundedRectRadii, Shape, Stroke};
-use vello_cpu::peniko::{Fill, Gradient, GradientKind, ColorStop, ColorStops, Extend, ImageQuality, SweepGradientPosition, RadialGradientPosition, LinearGradientPosition, ImageSampler};
-use vello_cpu::{PaintType, Pixmap, RenderContext, RenderMode, Image, RenderSettings, Level, ImageSource};
-use vello_cpu::color::DynamicColor;
-use std::sync::Arc;
+use vello_cpu::peniko::{
+    ColorStop, ColorStops, Extend, Fill, Gradient, GradientKind, ImageQuality, ImageSampler,
+    LinearGradientPosition, RadialGradientPosition, SweepGradientPosition,
+};
+use vello_cpu::{
+    Image, ImageSource, Level, PaintType, Pixmap, RenderContext, RenderMode, RenderSettings,
+    Resources,
+};
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -206,36 +212,53 @@ pub unsafe extern "C" fn vc_path_destroy(b: *mut vc_path) {
     let _ = Box::from_raw(b);
 }
 
-pub struct vc_context(RenderContext);
+pub struct vc_context {
+    render_context: RenderContext,
+    resources: Resources,
+}
 
 #[no_mangle]
-pub unsafe extern "C" fn vc_context_create(width: u32, height: u32, num_threads: u32) -> *mut vc_context {
+pub unsafe extern "C" fn vc_context_create(
+    width: u32,
+    height: u32,
+    num_threads: u32,
+) -> *mut vc_context {
     let settings = RenderSettings {
         level: Level::new(),
         num_threads: num_threads as u16,
-        render_mode: RenderMode::OptimizeSpeed
+        render_mode: RenderMode::OptimizeSpeed,
     };
-    
-    let ctx = RenderContext::new_with(width as u16, height as u16, settings);
-    Box::into_raw(Box::new(vc_context(ctx)))
+
+    let render_context = RenderContext::new_with(width as u16, height as u16, settings);
+    Box::into_raw(Box::new(vc_context {
+        render_context,
+        resources: Resources::new(),
+    }))
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_context_reset(ctx: *mut vc_context) {
-    (*ctx).0.reset();   
+    (*ctx).render_context.reset();
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn vc_context_resize(ctx: *mut vc_context, width: u32, height: u32, num_threads: u32) {
-    if (*ctx).0.width() != width as u16 || (*ctx).0.height() != height as u16 {
+pub unsafe extern "C" fn vc_context_resize(
+    ctx: *mut vc_context,
+    width: u32,
+    height: u32,
+    num_threads: u32,
+) {
+    if (*ctx).render_context.width() != width as u16
+        || (*ctx).render_context.height() != height as u16
+    {
         let settings = RenderSettings {
             level: Level::new(),
             num_threads: num_threads as u16,
-            render_mode: RenderMode::OptimizeSpeed
+            render_mode: RenderMode::OptimizeSpeed,
         };
-        
-        (*ctx).0 = RenderContext::new_with(width as u16, height as u16, settings);
-    }   
+
+        (*ctx).render_context = RenderContext::new_with(width as u16, height as u16, settings);
+    }
 }
 
 #[no_mangle]
@@ -265,61 +288,60 @@ pub unsafe extern "C" fn vc_arc_pixmap_destroy(pixmap: *mut vc_arc_pixmap) {
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_flush(context: *mut vc_context) {
-    (*context)
-        .0
-        .flush();
+    (*context).render_context.flush();
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_render_to_pixmap(pixmap: *mut vc_pixmap, context: *mut vc_context) {
-    (*context)
-        .0
-        .render_to_pixmap(&mut (*pixmap).0);
+    let context = &mut *context;
+    context
+        .render_context
+        .render_to_pixmap(&mut context.resources, &mut (*pixmap).0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_set_transform(ctx: *mut vc_context, transform: vc_transform) {
-    (*ctx).0.set_transform(transform.into())
+    (*ctx).render_context.set_transform(transform.into())
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_set_paint_transform(ctx: *mut vc_context, transform: vc_transform) {
-    (*ctx).0.set_paint_transform(transform.into())
+    (*ctx).render_context.set_paint_transform(transform.into())
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_reset_paint_transform(ctx: *mut vc_context) {
-    (*ctx).0.reset_paint_transform()
+    (*ctx).render_context.reset_paint_transform()
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_set_fill_rule(ctx: *mut vc_context, fill_rule: vc_fill_rule) {
-    (*ctx).0.set_fill_rule(fill_rule.into());
+    (*ctx).render_context.set_fill_rule(fill_rule.into());
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_set_paint(ctx: *mut vc_context, paint: vc_paint) {
-    (*ctx).0.set_paint(convert_paint(paint));
+    (*ctx).render_context.set_paint(convert_paint(paint));
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_set_stroke(ctx: *mut vc_context, stroke: vc_stroke) {
-    (*ctx).0.set_stroke(stroke.into());
+    (*ctx).render_context.set_stroke(stroke.into());
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_fill_path(ctx: *mut vc_context, path: *const vc_path) {
-    (*ctx).0.fill_path(&(*path).0);
+    (*ctx).render_context.fill_path(&(*path).0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_stroke_path(ctx: *mut vc_context, path: *const vc_path) {
-    (*ctx).0.stroke_path(&(*path).0);
+    (*ctx).render_context.stroke_path(&(*path).0);
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_fill_rect(ctx: *mut vc_context, rect: vc_rect) {
-    (*ctx).0.fill_rect(&rect.into());
+    (*ctx).render_context.fill_rect(&rect.into());
 }
 
 pub struct vc_argb(Vec<u8>);
@@ -406,24 +428,16 @@ unsafe fn convert_paint(paint: vc_paint) -> PaintType {
             let c: AlphaColor<Srgb> = color.into();
             c.into()
         }
-        vc_paint::LinearGradient(g) => {
-            (*g).clone().into()
-        }
-        vc_paint::RadialGradient(g) => {
-            (*g).clone().into()
-        }
-        vc_paint::SweepGradient(g) => {
-            (*g).clone().into()
-        }
-        vc_paint::Image(img) => {
-            (*img).clone().into()
-        }
+        vc_paint::LinearGradient(g) => (*g).clone().into(),
+        vc_paint::RadialGradient(g) => (*g).clone().into(),
+        vc_paint::SweepGradient(g) => (*g).clone().into(),
+        vc_paint::Image(img) => (*img).clone().into(),
     }
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn vc_stroke_rect(ctx: *mut vc_context, rect: vc_rect) {
-    (*ctx).0.stroke_rect(&rect.into());
+    (*ctx).render_context.stroke_rect(&rect.into());
 }
 
 #[repr(C)]
@@ -632,7 +646,11 @@ pub unsafe extern "C" fn vc_pixmap_from_data(
     let data_slice = std::slice::from_raw_parts(data, size);
     let casted: &[PremulRgba8] = bytemuck::cast_slice(data_slice);
 
-    Box::into_raw(Box::new(vc_arc_pixmap(Arc::new(Pixmap::from_parts(casted.to_vec(), width as u16, height as u16)))))
+    Box::into_raw(Box::new(vc_arc_pixmap(Arc::new(Pixmap::from_parts(
+        casted.to_vec(),
+        width as u16,
+        height as u16,
+    )))))
 }
 
 #[no_mangle]
@@ -653,7 +671,7 @@ pub unsafe extern "C" fn vc_image_create(
             alpha: 1.0,
         },
     };
-    
+
     Box::into_raw(Box::new(vc_image { image }))
 }
 

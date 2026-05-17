@@ -8,4 +8,4 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 bytemuck = "1"
-vello_cpu = { path = "../vello/sparse_strips/vello_cpu", features = ["multithreading"]}
+vello_cpu = { version = "0.0.8", features = ["multithreading"] }
