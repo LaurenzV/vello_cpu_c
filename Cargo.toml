@@ -8,4 +8,4 @@ crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
 bytemuck = "1"
-vello_cpu = { version = "0.0.8", features = ["multithreading"] }
+vello_cpu = { git = "https://github.com/linebender/vello", rev = "35a4279", features = ["multithreading"] }
