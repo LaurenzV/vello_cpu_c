@@ -540,8 +540,8 @@ impl From<vc_sweep_gradient> for PaintType {
         let gradient = Gradient {
             kind: GradientKind::Sweep(SweepGradientPosition {
                 center: value.center.into(),
-                start_angle: value.start_angle as f32,
-                end_angle: value.end_angle as f32,
+                start_angle: (value.start_angle as f32).to_radians(),
+                end_angle: (value.end_angle as f32).to_radians(),
             }),
             stops: ColorStops(value.stops.into()),
             extend: value.extend,
