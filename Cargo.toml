@@ -7,5 +7,4 @@ edition = "2021"
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-bytemuck = "1"
-vello_cpu = { git = "https://github.com/linebender/vello", rev = "35a4279", features = ["multithreading"] }
+vello_cpu = { git = "https://github.com/linebender/vello", rev = "6819ccb4", default-features = false, features = ["std", "u8_pipeline", "multithreading"] }

@@ -3,15 +3,15 @@
 
 use std::sync::Arc;
 use vello_cpu::color::DynamicColor;
-use vello_cpu::color::{AlphaColor, PremulRgba8, Srgb};
+use vello_cpu::color::{AlphaColor, Srgb};
 use vello_cpu::kurbo::{Affine, BezPath, Cap, Join, Point, Rect, RoundedRectRadii, Shape, Stroke};
 use vello_cpu::peniko::{
     ColorStop, ColorStops, Extend, Fill, Gradient, GradientKind, ImageQuality, ImageSampler,
     LinearGradientPosition, RadialGradientPosition, SweepGradientPosition,
 };
 use vello_cpu::{
-    Image, ImageSource, Level, PaintType, Pixmap, RenderContext, RenderMode, RenderSettings,
-    Resources,
+    Image, ImageSource, Level, PaintType, PixelMetadata, Pixmap, RasterizerSettings,
+    RenderContext, RenderMode, RenderSettings, Resources,
 };
 
 #[repr(C)]
@@ -226,7 +226,6 @@ pub unsafe extern "C" fn vc_context_create(
     let settings = RenderSettings {
         level: Level::new(),
         num_threads: num_threads as u16,
-        render_mode: RenderMode::OptimizeSpeed,
     };
 
     let render_context = RenderContext::new_with(width as u16, height as u16, settings);
@@ -254,7 +253,6 @@ pub unsafe extern "C" fn vc_context_resize(
         let settings = RenderSettings {
             level: Level::new(),
             num_threads: num_threads as u16,
-            render_mode: RenderMode::OptimizeSpeed,
         };
 
         (*ctx).render_context = RenderContext::new_with(width as u16, height as u16, settings);
@@ -294,9 +292,13 @@ pub unsafe extern "C" fn vc_flush(context: *mut vc_context) {
 #[no_mangle]
 pub unsafe extern "C" fn vc_render_to_pixmap(pixmap: *mut vc_pixmap, context: *mut vc_context) {
     let context = &mut *context;
+    let settings = RasterizerSettings {
+        render_mode: RenderMode::OptimizeSpeed,
+        ..RasterizerSettings::default()
+    };
     context
         .render_context
-        .render_to_pixmap(&mut context.resources, &mut (*pixmap).0);
+        .render_with(&mut (*pixmap).0, &mut context.resources, settings);
 }
 
 #[no_mangle]
@@ -644,12 +646,12 @@ pub unsafe extern "C" fn vc_pixmap_from_data(
 ) -> *mut vc_arc_pixmap {
     let size = (width * height * 4) as usize;
     let data_slice = std::slice::from_raw_parts(data, size);
-    let casted: &[PremulRgba8] = bytemuck::cast_slice(data_slice);
 
     Box::into_raw(Box::new(vc_arc_pixmap(Arc::new(Pixmap::from_parts(
-        casted.to_vec(),
+        data_slice.to_vec(),
         width as u16,
         height as u16,
+        PixelMetadata::default(),
     )))))
 }
 
